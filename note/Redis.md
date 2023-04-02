@@ -14,7 +14,7 @@
 >
 > 与 ***memcached***一样，为了保证效率，数据都是缓存在内存中。
 >
-> 区别的是 ***Redis*** 会周期性的把更新的数据写入磁盘或者把修改操作写入追加的记录文件。
+> 区别的是 ***Redis*** 会周期性的把更新的数据写入磁盘或者把 修改操作写入追加的记录文件。
 >
 > 并且在此基础上实现了***master-slave*** （主从）同步。
 >
@@ -62,6 +62,8 @@
 >
 > <img src="https://gitee.com/tsuiraku/typora/raw/master/img/截屏2021-10-21 22.16.18.png" style="zoom:50%;" />
 >
+> 
+>
 > ```
 > redis-benchmark：性能测试工具，可以在自己本子运行，看看自己本子性能如何
 > redis-check-aof：修复有问题的AOF文件，rdb和aof后面讲
@@ -94,11 +96,13 @@
 >
 >   ```bash
 >   vim redis.conf
->   
+>             
 >   # daemonize no 修改为 daemonize yes
 >   ```
 >
 >   <img src="https://gitee.com/tsuiraku/typora/raw/master/img/%E6%88%AA%E5%B1%8F2021-10-21%2022.55.41.png" style="zoom:50%;" />
+>
+>   
 >
 > - ***/usr/local/bin*** 目录下启动 ***redis***
 >
@@ -106,7 +110,7 @@
 >   redis-server /etc/redis.conf
 >   ```
 >
->   
+> 
 >
 > 关闭 ***redis***
 >
@@ -381,7 +385,7 @@
 
 # 常用五大基本数据类型
 
-## key操作
+## key 操作
 
 > `keys *`：查看当前库所有 ***key***  
 >
@@ -409,7 +413,7 @@
 
 
 
-## 字符串（String）
+## String（字符串）
 
 ***String*** 类型是二进制安全的。意味着 ***Redis*** 的 ***string*** 可以包含任何数据。比如 ***jpg*** 图片或者序列化的对象。
 
@@ -471,7 +475,7 @@
 
 
 
-## 列表（List）
+## List（列表）
 
 ***Redis*** 列表是简单的字符串列表，按照插入顺序排序。你可以添加一个元素到列表的头部（左边）或者尾部（右边）。
 
@@ -591,6 +595,12 @@
 >
 > `hvals <key>`：列出该 ***hash*** 集合的所有 ***value***
 >
+> `hgetall <key>`: 列出全部 ***field*** 和 ***value*** 
+>
+> `hdel <key> <field>`: 删除 ***hash*** 指定 ***key*** 字段
+>
+> `hlen <key>`: 获取 ***hash*** 中的字段数量
+>
 > `hincrby <key><field><increment>`：为哈希表 ***key*** 中的域 ***field*** 的值加上增量 1  -1
 >
 > `hsetnx <key><field><value>`：将哈希表 ***key*** 中的域 ***field*** 的值设置为 ***value*** ，当且仅当域 ***field*** 不存在
@@ -649,6 +659,36 @@
 
 
 
+# 三种特殊数据类型
+
+## Geospatial地理位置详解
+
+
+
+## Hyperloglog基数统计
+
+> 有容错率0.81%
+
+```bash
+PFadd
+PFcount
+PFmerge
+```
+
+
+
+## Bitmap位图场景详解
+
+> 位存储
+
+```bash
+setbit
+getbit
+bitcount
+```
+
+
+
 # Redis6新数据结构
 
 $\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\space to \space do\space \#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#$
@@ -680,6 +720,22 @@ $\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\space to \space do\space \#\#\#\#\#\#\#\
 > 
 > publish channel hello # 频道发送信息
 > ```
+
+
+
+**原理**
+
+> Redis是使用C实现的，通过分析Redis源码里的pubsub.c文件，了解发布和订阅机制的底层实现，籍此加深对Redis的理解。
+> Redis通过PUBLISH、SUBSCRIBE和PSUBSCRIBE等命令实现发布和订阅功能。
+> 通过SUBSCRIBE命令订阅某频道后，redis-server里维护了一个字典，字典的键就是一个个channel,而字典的值则是一个链
+> 表，链表中保存了所有订阅这个channel的客户端。SUBSCRIBE命令的关键，就是将客户端添加到给定channel的订阅链表中。
+> 通过PUBLISH命令向订阅者发送消息，redis-server会使用给定的频道作为键，在它所维护的channel字典中查找记录了订阅这
+> 个频道的所有客户端的链表，遍历这个链表，将消息发布给所有订阅者。
+> Pub/Sub从字面上理解就是发布(Publish)与订阅(Subscribe),在Redis中，你可以设定对某一个key值进行消息发布及消息订
+> 阅，当一个ky值上进行了消息发布后，所有订阅它的客户端都会收到相应的消息。这一功能最明显的用法就是用作实时消息系
+> 统，比如普通的即时聊天，群聊等功能。
+
+
 
 
 
@@ -955,6 +1011,31 @@ $\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\space to \space do\space \#\#\#\#\#\#\#\
 > 不建议单独用 ***AOF***，因为可能会出现 ***Bug***。
 >
 > 如果只是做纯内存缓存，可以都不用。
+
+
+
+1、RDB持久化方式能够在指定的时间间隔内对你的数据进行快照存储
+2、AOF持久化方式记录每次对服务器写的操作，当服务器重启的时候会重新执行这些命令来恢复原始的数据，AOF命令以Rdis协
+议追加保存每次写的操作到文件末尾，Redisi还能对AOF文件进行后台重写，使得AOF文件的体积不至于过大。
+3、只做缓存，如果你只希望你的数据在服务器运行的时候存在，你也可以不使用任何持久化
+4、同时开启两种持久化方式
+
+- 在这种情况下，当rdis重启的时候会优先载入AOF文件来恢复原始的数据，因为在通常情况下AOF文件保存的数据集要比RDB
+  文件保存的数据集要完整。
+- RDB的数据不实时，同时使用两者时服务器重启也只会找AOF文件，那要不要只使用AOF呢？作者建议不要，因为RDB更适合
+  用于备份数据库(AOF在不断变化不好备份)，快速重启，而且不会有AOF可能潜在的Bug,留着作为一个万一的手段。
+
+5、性能建议
+
+- 因为RDB文件只用作后备用途，建议只在Slave上持久化RDB文件，而且只要15分钟备份一次就够了，只保留save9001这条
+  规则。
+- 如果Enable AOF,好处是在最恶劣情况下也只会丢失不超过两秒数据，启动脚本较简单只Ioad自己的AOF文件就可以了，代价
+  一是带来了持续的IO,二是AOF rewrite的最后将rewrite过程中产生的新数据写到新文件造成的阻塞几乎是不可避免的。只要
+  硬盘许可，应该尽量减少AOF rewrite的频率，AOF重写的基础大小默认值64M太小了，可以设到5G以上，默认超过原大小
+  100%大小重写可以改到适当的数值。
+- 如果不Enable AOF,仅靠Master-Slave Repllcation实现高可用性也可以，能省掉一大笔IO,也减少了rewrite时带来的系统
+  波动。代价是如果Master/Slave同时倒掉，会丢失十几分钟的数据，启动脚本也要比较两个Master/,Slave中的RDB文件，载
+  入较新的那个，微博就是这种架构。
 
 
 
@@ -1677,9 +1758,3 @@ public class RedisConfig extends CachingConfigurerSupport {
 ## 分布式锁
 
 $\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\space to \space do\space \#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#\#$
-
-
-
-# 感谢
-
-- [尚硅谷-王老师](https://www.bilibili.com/video/BV1Rv41177Af)
